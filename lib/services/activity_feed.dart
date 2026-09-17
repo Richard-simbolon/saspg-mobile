@@ -7,6 +7,7 @@ import '../widgets/nocturne_card.dart';
 const _leaveTypeLabel = {'tahunan': 'Cuti Tahunan', 'sakit': 'Sakit', 'izin': 'Izin', 'lainnya': 'Lainnya'};
 const _approvalStatusLabel = {'pending': 'Menunggu', 'approved': 'Disetujui', 'rejected': 'Ditolak'};
 const _leaveStatusLabel = {'pending': 'Menunggu', 'approved': 'Disetujui', 'rejected': 'Ditolak'};
+const _locationRegistrationStatusLabel = {'pending': 'Menunggu', 'approved': 'Disetujui', 'rejected': 'Ditolak'};
 
 String _periodLabel(String period) {
   const months = [
@@ -48,6 +49,7 @@ List<ActivityEvent> buildActivityEvents({
   required List<DailySalesReport> salesReports,
   required List<Payslip> payslips,
   List<VisitSession> visitSessions = const [],
+  List<LocationRegistrationRequest> locationRegistrations = const [],
 }) {
   final events = <ActivityEvent>[];
 
@@ -65,7 +67,7 @@ List<ActivityEvent> buildActivityEvents({
         id: 'att-${a.id}',
         date: DateTime.tryParse('${a.date}T${a.checkin}:00') ?? DateTime.parse(a.date),
         color: color,
-        title: late ? 'Check-in terlambat — ${a.outlet}' : 'Check-in — ${a.outlet}',
+        title: late ? 'Absen Masuk Terlambat — ${a.outlet}' : 'Absen Masuk — ${a.outlet}',
         description: 'Pukul ${a.checkin}',
       ));
       if (a.checkout != null) {
@@ -73,7 +75,7 @@ List<ActivityEvent> buildActivityEvents({
           id: 'att-checkout-${a.id}',
           date: DateTime.tryParse('${a.date}T${a.checkout}:00') ?? DateTime.parse(a.date),
           color: NocturneColors.accent,
-          title: 'Check-out — ${a.outlet}',
+          title: 'Absen Pulang — ${a.outlet}',
           description: a.durationMinutes != null ? '${a.checkin} – ${a.checkout} (${a.durationMinutes} menit)' : '${a.checkin} – ${a.checkout}',
         ));
       }
@@ -83,7 +85,7 @@ List<ActivityEvent> buildActivityEvents({
         date: DateTime.tryParse('${a.date}T12:00:00') ?? DateTime.parse(a.date),
         color: NocturneColors.danger,
         title: 'Tidak hadir (alpha) — ${a.outlet}',
-        description: 'Tidak ada catatan check-in pada jadwal ini.',
+        description: 'Tidak ada catatan absen pada jadwal ini.',
       ));
     }
   }
@@ -131,7 +133,7 @@ List<ActivityEvent> buildActivityEvents({
       id: 'visit-start-${v.id}',
       date: DateTime.tryParse('${v.date}T${v.startTime}:00') ?? DateTime.parse(v.date),
       color: NocturneColors.accent,
-      title: 'Mulai kunjungan — ${v.outlet}',
+      title: 'Check In — ${v.outlet}',
       description: 'Pukul ${v.startTime}',
     ));
     if (v.endTime != null) {
@@ -139,8 +141,30 @@ List<ActivityEvent> buildActivityEvents({
         id: 'visit-end-${v.id}',
         date: DateTime.tryParse('${v.date}T${v.endTime}:00') ?? DateTime.parse(v.date),
         color: NocturneColors.accent,
-        title: 'Kunjungan berakhir — ${v.outlet}',
+        title: 'Check Out — ${v.outlet}',
         description: '${v.startTime} – ${v.endTime} (${v.durationMinutes ?? 0} menit)',
+      ));
+    }
+  }
+
+  for (final r in locationRegistrations) {
+    events.add(ActivityEvent(
+      id: 'locreg-${r.id}',
+      date: r.createdAt,
+      color: NocturneColors.accent2,
+      title: 'Mendaftarkan toko baru — ${r.name}',
+      description: (r.address?.isNotEmpty ?? false) ? r.address! : 'Menunggu tinjauan admin',
+      badgeLabel: _locationRegistrationStatusLabel[r.status] ?? r.status,
+      badgeVariant: r.status == 'approved' ? TagVariant.accent : (r.status == 'rejected' ? TagVariant.neutral : TagVariant.outline),
+    ));
+    if (r.reviewedAt != null) {
+      final approved = r.status == 'approved';
+      events.add(ActivityEvent(
+        id: 'locreg-review-${r.id}',
+        date: r.reviewedAt!,
+        color: approved ? NocturneColors.accent : NocturneColors.danger,
+        title: approved ? 'Toko "${r.name}" disetujui' : 'Toko "${r.name}" ditolak',
+        description: (r.reviewNote?.isNotEmpty ?? false) ? r.reviewNote! : (approved ? 'Sudah masuk jadwal kunjungan.' : 'Lihat catatan di Daftar Toko Saya.'),
       ));
     }
   }

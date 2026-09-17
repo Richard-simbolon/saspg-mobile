@@ -29,7 +29,7 @@ class _ChatTabState extends State<ChatTab> {
     _Msg(_Who.sv, 'Selamat pagi, jangan lupa cek stok yang menipis ya.', '07:42', name: 'Supervisor'),
     _Msg(_Who.me, 'Siap Bu, segera meluncur ke lokasi.', '07:45'),
     _Msg(_Who.sv, 'Oke, foto etalase sebelum & sesudah display juga ya.', '07:46', name: 'Supervisor'),
-    _Msg(_Who.sys, 'Pengingat: check-out sebelum pukul 17:00', '16:30'),
+    _Msg(_Who.sys, 'Pengingat: absen pulang sebelum pukul 17:00', '16:30'),
   ];
 
   void _send() {

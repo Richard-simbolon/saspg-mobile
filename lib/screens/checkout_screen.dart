@@ -135,7 +135,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Check-out & GPS', style: TextStyle(fontSize: 16))),
+      appBar: AppBar(title: const Text('Absen Pulang & GPS', style: TextStyle(fontSize: 16))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
         children: [
@@ -161,8 +161,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Expanded(
                   child: Text(
                     widget.attendance.outlet == widget.location.name
-                        ? 'Anda check-in pukul ${widget.attendance.checkin} di ${widget.location.name}'
-                        : 'Anda check-in pukul ${widget.attendance.checkin} di ${widget.attendance.outlet} — check-out sekarang di ${widget.location.name}',
+                        ? 'Anda absen masuk pukul ${widget.attendance.checkin} di ${widget.location.name}'
+                        : 'Anda absen masuk pukul ${widget.attendance.checkin} di ${widget.attendance.outlet} — absen pulang sekarang di ${widget.location.name}',
                     style: const TextStyle(fontSize: 12.5),
                   ),
                 ),
@@ -196,8 +196,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Expanded(
                     child: Text(
                       _withinRadius
-                          ? 'Anda berada dalam radius ${widget.location.radiusMeters ?? 100}m dari ${widget.location.name}. Check-out diizinkan.'
-                          : 'Lokasi di luar radius toko (jarak ${_distance!.round()}m). Check-out diblokir.',
+                          ? 'Anda berada dalam radius ${widget.location.radiusMeters ?? 100}m dari ${widget.location.name}. Absen pulang diizinkan.'
+                          : 'Lokasi di luar radius toko (jarak ${_distance!.round()}m). Absen pulang diblokir.',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),
@@ -227,7 +227,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ? 'Tidak terhubung WiFi — melanjutkan dengan validasi GPS saja.'
                               : _wifiOk
                                   ? 'Terhubung ke WiFi "$_ssid". Sesuai dengan lokasi ini.'
-                                  : 'Terhubung ke WiFi "$_ssid" — lokasi ini mewajibkan WiFi "${widget.location.wifiSsid}". Check-out diblokir.',
+                                  : 'Terhubung ke WiFi "$_ssid" — lokasi ini mewajibkan WiFi "${widget.location.wifiSsid}". Absen pulang diblokir.',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),
@@ -237,7 +237,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ],
           const SizedBox(height: 14),
           if (_result == null) ...[
-            const Text('Selfie verifikasi check-out', style: TextStyle(fontSize: 12, color: Color(0x99E9E9ED))),
+            const Text('Selfie verifikasi absen pulang', style: TextStyle(fontSize: 12, color: Color(0x99E9E9ED))),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: _takeSelfie,
@@ -292,7 +292,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 onPressed: (_position != null && _withinRadius && _wifiOk && !_submitting) ? _checkout : null,
                 child: _submitting
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Check-out Sekarang'),
+                    : const Text('Absen Pulang Sekarang'),
               ),
             ),
           ] else ...[
@@ -304,7 +304,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Berhasil check-out pukul ${_result!.checkout} (${_result!.durationMinutes} menit di lokasi)',
+                      'Berhasil absen pulang pukul ${_result!.checkout} (${_result!.durationMinutes} menit di lokasi)',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),

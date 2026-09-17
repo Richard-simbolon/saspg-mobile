@@ -46,6 +46,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
       final salesFuture = data.api.listDailySalesReports(spgId: data.spgId);
       final payslipsFuture = data.api.listMyPayslips();
       final visitSessionsFuture = data.api.listVisitSessions(spgId: data.spgId);
+      final locationRegistrationsFuture = data.api.searchMyLocationRegistrations(pageSize: 100);
 
       final events = buildActivityEvents(
         attendance: await attendanceFuture,
@@ -54,6 +55,7 @@ class _ActivityHistoryScreenState extends State<ActivityHistoryScreen> {
         salesReports: await salesFuture,
         payslips: await payslipsFuture,
         visitSessions: await visitSessionsFuture,
+        locationRegistrations: (await locationRegistrationsFuture).items,
       );
       if (!mounted) return;
       setState(() {

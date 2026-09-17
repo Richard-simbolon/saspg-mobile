@@ -200,6 +200,7 @@ class Brand {
     required this.products,
     required this.assignedSpgIds,
     required this.training,
+    required this.spgWorkMode,
   });
   final int id;
   final String name;
@@ -207,6 +208,11 @@ class Brand {
   final List<Product> products;
   final List<int> assignedSpgIds;
   final List<TrainingSession> training;
+  /// 'toko_tetap' | 'toko_mandiri' | 'penjualan_keliling'
+  final String spgWorkMode;
+
+  bool get isTokoMandiri => spgWorkMode == 'toko_mandiri';
+  bool get isPenjualanKeliling => spgWorkMode == 'penjualan_keliling';
 
   factory Brand.fromJson(Map<String, dynamic> j) => Brand(
         id: _asInt(j['id']),
@@ -217,6 +223,7 @@ class Brand {
         training: (j['training'] as List)
             .map((e) => TrainingSession.fromJson(e, brandId: _asInt(j['id']), brandName: j['name'] as String))
             .toList(),
+        spgWorkMode: j['spgWorkMode'] as String? ?? 'toko_tetap',
       );
 }
 
@@ -503,21 +510,40 @@ class CompetitorActivity {
 }
 
 class DailySalesReportItem {
-  DailySalesReportItem({required this.productId, required this.qty, required this.lineTotal});
+  DailySalesReportItem({required this.productId, required this.qty, required this.unitPrice, required this.lineTotal});
   final int productId;
   final int qty;
+  final num unitPrice;
   final num lineTotal;
 
-  factory DailySalesReportItem.fromJson(Map<String, dynamic> j) =>
-      DailySalesReportItem(productId: _asInt(j['productId']), qty: _asInt(j['qty']), lineTotal: j['lineTotal'] as num);
+  factory DailySalesReportItem.fromJson(Map<String, dynamic> j) => DailySalesReportItem(
+        productId: _asInt(j['productId']),
+        qty: _asInt(j['qty']),
+        unitPrice: (j['unitPrice'] as num?) ?? 0,
+        lineTotal: j['lineTotal'] as num,
+      );
 }
 
 class DailySalesReport {
-  DailySalesReport({required this.id, required this.spgId, required this.outlet, required this.date, this.items = const []});
+  DailySalesReport({
+    required this.id,
+    required this.spgId,
+    required this.outlet,
+    required this.date,
+    required this.createdAt,
+    required this.photoUrl,
+    required this.lat,
+    required this.lng,
+    this.items = const [],
+  });
   final int id;
   final int spgId;
   final String outlet;
   final String date;
+  final DateTime createdAt;
+  final String? photoUrl;
+  final double? lat;
+  final double? lng;
   final List<DailySalesReportItem> items;
 
   num get total => items.fold<num>(0, (sum, i) => sum + i.lineTotal);
@@ -527,7 +553,25 @@ class DailySalesReport {
         spgId: _asInt(j['spgId']),
         outlet: j['outlet'] as String,
         date: j['date'] as String,
+        createdAt: j['createdAt'] != null ? DateTime.parse(j['createdAt'] as String) : DateTime.parse(j['date'] as String),
+        photoUrl: j['photoUrl'] as String?,
+        lat: (j['lat'] as num?)?.toDouble(),
+        lng: (j['lng'] as num?)?.toDouble(),
         items: j['items'] == null ? const [] : (j['items'] as List).map((e) => DailySalesReportItem.fromJson(e)).toList(),
+      );
+}
+
+/// One page of `GET /daily-sales-reports/search` — `{ data, total, totalAmount, page, pageSize }`.
+class DailySalesReportPage {
+  DailySalesReportPage({required this.items, required this.total, required this.totalAmount});
+  final List<DailySalesReport> items;
+  final int total;
+  final num totalAmount;
+
+  factory DailySalesReportPage.fromJson(Map<String, dynamic> j) => DailySalesReportPage(
+        items: (j['data'] as List).map((e) => DailySalesReport.fromJson(e)).toList(),
+        total: _asInt(j['total']),
+        totalAmount: (j['totalAmount'] as num?) ?? 0,
       );
 }
 
@@ -774,5 +818,65 @@ class Payslip {
         netSalary: j['netSalary'] as num,
         status: j['status'] as String,
         paidAt: j['paidAt'] == null ? null : DateTime.parse(j['paidAt'] as String),
+      );
+}
+
+/// A store an SPG has proposed while prospecting in the field — `status` starts `pending` until
+/// an admin reviews it; only once `approved` does it turn into a real assigned location with a
+/// weekly visit schedule (see the mobile "Daftarkan Toko" flow and dashboard-api's
+/// `LocationRegistrationRequest`).
+class LocationRegistrationRequest {
+  LocationRegistrationRequest({
+    required this.id,
+    required this.brandId,
+    required this.name,
+    required this.address,
+    required this.category,
+    required this.lat,
+    required this.lng,
+    required this.photoUrl,
+    required this.status,
+    required this.reviewNote,
+    required this.reviewedAt,
+    required this.createdAt,
+  });
+  final int id;
+  final int brandId;
+  final String name;
+  final String? address;
+  final String? category;
+  final double lat;
+  final double lng;
+  final String? photoUrl;
+  final String status;
+  final String? reviewNote;
+  final DateTime? reviewedAt;
+  final DateTime createdAt;
+
+  factory LocationRegistrationRequest.fromJson(Map<String, dynamic> j) => LocationRegistrationRequest(
+        id: _asInt(j['id']),
+        brandId: _asInt(j['brandId']),
+        name: j['name'] as String,
+        address: j['address'] as String?,
+        category: j['category'] as String?,
+        lat: (j['lat'] as num).toDouble(),
+        lng: (j['lng'] as num).toDouble(),
+        photoUrl: j['photoUrl'] as String?,
+        status: j['status'] as String,
+        reviewNote: j['reviewNote'] as String?,
+        reviewedAt: j['reviewedAt'] != null ? DateTime.parse(j['reviewedAt'] as String) : null,
+        createdAt: DateTime.parse(j['createdAt'] as String),
+      );
+}
+
+/// One page of `GET /location-registration-requests/mine` — `{ data, total, page, pageSize }`.
+class LocationRegistrationPage {
+  LocationRegistrationPage({required this.items, required this.total});
+  final List<LocationRegistrationRequest> items;
+  final int total;
+
+  factory LocationRegistrationPage.fromJson(Map<String, dynamic> j) => LocationRegistrationPage(
+        items: (j['data'] as List).map((e) => LocationRegistrationRequest.fromJson(e)).toList(),
+        total: _asInt(j['total']),
       );
 }

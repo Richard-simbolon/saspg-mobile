@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_state.dart';
+import '../services/theme_controller.dart';
 import '../theme/nocturne_theme.dart';
 
 Future<void> _showServerSettingsDialog(BuildContext context) async {
@@ -126,27 +127,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: NocturneColors.accent),
-                          borderRadius: BorderRadius.circular(
-                            NocturneRadius.lg,
+                      // Nocturnal (dark) reads the white-text lockup; Light reads the
+                      // black-text one — same artwork, just whichever clears its background.
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Image.asset(
+                            ThemeController.instance.isDark
+                                ? 'assets/branding/obc_logo_white_text.png'
+                                : 'assets/branding/obc_logo_black_text.png',
+                            width: 220,
                           ),
-                        ),
-                        child: Icon(
-                          Icons.location_on_outlined,
-                          color: NocturneColors.accent,
-                          size: 28,
-                        ),
-                      ),
-                      const Text(
-                        'One Big Circle (OBC)',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -236,17 +227,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             color: NocturneColors.textMuted(0.55),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Center(
-                        child: Text(
-                          context.watch<AuthState>().api.baseUrl,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: NocturneColors.textMuted(0.4),
                           ),
                         ),
                       ),

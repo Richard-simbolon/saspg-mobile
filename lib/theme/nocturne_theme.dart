@@ -14,8 +14,10 @@ class NocturneColors {
   static Color get bg => _dark ? const Color(0xFF161826) : const Color(0xFFF5F5FA);
   static Color get surface => _dark ? const Color(0xFF232532) : const Color(0xFFFFFFFF);
   static Color get text => _dark ? const Color(0xFFE9E9ED) : const Color(0xFF1B1B24);
-  static Color get accent => _dark ? const Color(0xFF9184D9) : const Color(0xFF7A6BC4);
-  static Color get accent2 => _dark ? const Color(0xFFA7A1DB) : const Color(0xFF6F63A8);
+  // One Big Circle's gold ribbon mark, ported into the accent role — brighter gold on the
+  // dark/"Nocturnal" surface, a deeper antique-gold on light so it still clears contrast on white.
+  static Color get accent => _dark ? const Color(0xFFD4AF37) : const Color(0xFF946A15);
+  static Color get accent2 => _dark ? const Color(0xFFC9A227) : const Color(0xFF7A5C12);
   static Color get divider => _dark ? const Color(0x29E9E9ED) : const Color(0x1F1B1B24);
 
   /// Tag-chip pair: `neutral800` is the chip background, `neutral100` its text.
@@ -24,8 +26,8 @@ class NocturneColors {
   static Color get neutral900 => _dark ? const Color(0xFF292B31) : const Color(0xFFECECF2);
 
   /// Same pairing as neutral100/800, for the accent-colored tag variant.
-  static Color get accent100 => _dark ? const Color(0xFFF5F4FF) : const Color(0xFF4A3F87);
-  static Color get accent800 => _dark ? const Color(0xFF423A6A) : const Color(0xFFE9E5FA);
+  static Color get accent100 => _dark ? const Color(0xFFFFF6DE) : const Color(0xFF5C4813);
+  static Color get accent800 => _dark ? const Color(0xFF453A16) : const Color(0xFFF3E6C4);
 
   static Color get danger => _dark ? const Color(0xFFE08D84) : const Color(0xFFC23B30);
   static Color get dangerBorder => _dark ? const Color(0xFFB5483F) : const Color(0xFFE8B4AE);

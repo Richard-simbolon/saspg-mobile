@@ -13,8 +13,10 @@ import '../widgets/activity_feed_list.dart';
 import '../widgets/outlet_status_tag.dart';
 import 'activity_history_screen.dart';
 import 'checkin_screen.dart';
+import 'checkin_keliling_screen.dart';
 import 'checkout_screen.dart';
 import 'outlet_detail_screen.dart';
+import 'penjualan_keliling_list_screen.dart';
 import 'shell_navigation.dart';
 import 'training_checkin_screen.dart';
 import 'training_checkout_screen.dart';
@@ -57,6 +59,7 @@ class _HomeTabState extends State<HomeTab> {
       final salesFuture = data.api.listDailySalesReports(spgId: data.spgId);
       final payslipsFuture = data.api.listMyPayslips();
       final visitSessionsFuture = data.api.listVisitSessions(spgId: data.spgId);
+      final locationRegistrationsFuture = data.api.searchMyLocationRegistrations(pageSize: 100);
 
       final events = buildActivityEvents(
         attendance: await attendanceFuture,
@@ -65,6 +68,7 @@ class _HomeTabState extends State<HomeTab> {
         salesReports: await salesFuture,
         payslips: await payslipsFuture,
         visitSessions: await visitSessionsFuture,
+        locationRegistrations: (await locationRegistrationsFuture).items,
       );
       if (mounted) setState(() => _recentActivity = events);
     } catch (_) {
@@ -85,8 +89,8 @@ class _HomeTabState extends State<HomeTab> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: NocturneColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NocturneRadius.lg)),
-        title: const Text('Check-in', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
-        content: Text('Apakah Anda ingin melanjutkan Check-in di ${loc.name}?', style: const TextStyle(fontSize: 13)),
+        title: const Text('Absen Masuk', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+        content: Text('Apakah Anda ingin melanjutkan Absen Masuk di ${loc.name}?', style: const TextStyle(fontSize: 13)),
         actions: [
           TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Batal')),
           ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Lanjutkan')),
@@ -100,6 +104,12 @@ class _HomeTabState extends State<HomeTab> {
     if (mounted) data.refreshAttendance();
   }
 
+  Future<void> _handleKelilingCheckin(int brandId) async {
+    final data = context.read<FieldDataState>();
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => CheckinKelilingScreen(brandId: brandId)));
+    if (mounted) data.refreshAttendance();
+  }
+
   Future<void> _handleTrainingCheckin(TrainingSession training) async {
     final venue = training.venueName?.trim().isNotEmpty == true ? training.venueName! : training.topik;
     final confirmed = await showDialog<bool>(
@@ -107,8 +117,8 @@ class _HomeTabState extends State<HomeTab> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: NocturneColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NocturneRadius.lg)),
-        title: const Text('Check-in Training', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
-        content: Text('Apakah Anda ingin melanjutkan Check-in di $venue?', style: const TextStyle(fontSize: 13)),
+        title: const Text('Absen Masuk Training', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+        content: Text('Apakah Anda ingin melanjutkan Absen Masuk di $venue?', style: const TextStyle(fontSize: 13)),
         actions: [
           TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Batal')),
           ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Lanjutkan')),
@@ -203,6 +213,10 @@ class _HomeTabState extends State<HomeTab> {
     // Half day: training just shows alongside the normal store schedule below.
     final todayTraining = data.todayTraining;
     final fullDayTraining = todayTraining != null && todayTraining.isFullDay;
+    // `myLocations` is always empty for penjualan_keliling SPGs (no fixed store to assign) — this
+    // is the one place that distinction matters, so the empty schedule state below offers the
+    // right primary action instead of a dead-end "belum ada lokasi" message.
+    final kelilingBrands = data.myBrands.where((b) => b.isPenjualanKeliling).toList();
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -229,15 +243,15 @@ class _HomeTabState extends State<HomeTab> {
                                 ? 'Selesai hari ini'
                                 : hasCheckedInToday
                                     ? 'Sedang berkunjung'
-                                    : 'Belum check-in',
+                                    : 'Belum absen',
                             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
                           ),
                           if (todaysCheckin != null) ...[
                             const SizedBox(height: 2),
                             Text(
                               dayComplete
-                                  ? 'Check-in ${todaysCheckin.checkin} · Check-out ${todaysCheckin.checkout}'
-                                  : 'Check-in ${todaysCheckin.checkin}',
+                                  ? 'Absen Masuk ${todaysCheckin.checkin} · Absen Pulang ${todaysCheckin.checkout}'
+                                  : 'Absen Masuk ${todaysCheckin.checkin}',
                               style: TextStyle(fontSize: 11.5, color: NocturneColors.textMuted(0.6)),
                             ),
                           ],
@@ -275,7 +289,7 @@ class _HomeTabState extends State<HomeTab> {
                     height: 40,
                     child: OutlinedButton(
                       onPressed: () => _handleCheckout(data),
-                      child: const Text('Check Out', style: TextStyle(fontSize: 12.5)),
+                      child: const Text('Absen Pulang', style: TextStyle(fontSize: 12.5)),
                     ),
                   ),
                 ],
@@ -322,7 +336,14 @@ class _HomeTabState extends State<HomeTab> {
               ),
               const SizedBox(height: 8),
             ],
-            if (preview.isEmpty)
+            if (preview.isEmpty && kelilingBrands.isNotEmpty)
+              _KelilingActions(
+                brandId: kelilingBrands.first.id,
+                hasCheckedInToday: hasCheckedInToday,
+                dayComplete: dayComplete,
+                onCheckin: () => _handleKelilingCheckin(kelilingBrands.first.id),
+              )
+            else if (preview.isEmpty)
               EmptyState(
                 label: data.myLocations.isEmpty
                     ? 'Belum ada lokasi yang ditugaskan kepada Anda.'
@@ -365,7 +386,7 @@ class _HomeTabState extends State<HomeTab> {
                           height: 36,
                           child: OutlinedButton(
                             onPressed: () => _handleCheckin(o),
-                            child: const Text('Check In', style: TextStyle(fontSize: 12.5)),
+                            child: const Text('Absen Masuk', style: TextStyle(fontSize: 12.5)),
                           ),
                         ),
                       ],
@@ -448,15 +469,15 @@ class _TrainingDayCard extends StatelessWidget {
               height: 36,
               child: OutlinedButton(
                 onPressed: onCheckin,
-                child: const Text('Check-in Training', style: TextStyle(fontSize: 12.5)),
+                child: const Text('Absen Masuk Training', style: TextStyle(fontSize: 12.5)),
               ),
             ),
           ] else if (checkedInHere) ...[
             const SizedBox(height: 8),
             Text(
               dayComplete
-                  ? 'Check-in ${todaysCheckin!.checkin} · Check-out ${todaysCheckin!.checkout}'
-                  : 'Sedang training — check-in pukul ${todaysCheckin!.checkin}',
+                  ? 'Absen Masuk ${todaysCheckin!.checkin} · Absen Pulang ${todaysCheckin!.checkout}'
+                  : 'Sedang training — absen masuk pukul ${todaysCheckin!.checkin}',
               style: TextStyle(fontSize: 11.5, color: NocturneColors.textMuted(0.6)),
             ),
           ] else if (onCheckin == null) ...[
@@ -468,6 +489,68 @@ class _TrainingDayCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Primary action for `penjualan_keliling` SPGs, shown where a normal SPG would see their
+/// "Jadwal Hari Ini" store list — there's no fixed store to list, so this offers free-roam
+/// check-in (before) or recording a sale / viewing the sales list (after).
+class _KelilingActions extends StatelessWidget {
+  const _KelilingActions({
+    required this.brandId,
+    required this.hasCheckedInToday,
+    required this.dayComplete,
+    required this.onCheckin,
+  });
+  final int brandId;
+  final bool hasCheckedInToday;
+  final bool dayComplete;
+  final VoidCallback onCheckin;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!hasCheckedInToday) {
+      return SizedBox(
+        width: double.infinity,
+        height: 44,
+        child: ElevatedButton.icon(
+          onPressed: onCheckin,
+          icon: const Icon(Icons.my_location, size: 16),
+          label: const Text('Absen Masuk (Keliling)'),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        NocturneCard(
+          borderColor: NocturneColors.accent800,
+          child: Row(
+            children: [
+              Icon(Icons.check_circle, size: 18, color: NocturneColors.accent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  dayComplete ? 'Sudah selesai hari ini.' : 'Sudah absen masuk — silakan mulai berjualan.',
+                  style: const TextStyle(fontSize: 12.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => PenjualanKelilingListScreen(brandId: brandId)),
+            ),
+            icon: const Icon(Icons.point_of_sale_outlined, size: 16),
+            label: const Text('Catat / Lihat Penjualan'),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import '../models/models.dart';
 
 /// Fallback base URL, only used the very first time the app runs (before the SPG has ever set
@@ -99,7 +101,17 @@ class ApiClient {
   Future<String> uploadFile(File file) async {
     final request = http.MultipartRequest('POST', _uri('/uploads'));
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+    // http.MultipartFile.fromPath defaults to application/octet-stream when no
+    // contentType is given — the backend's file-type check then rejects every
+    // upload outright, so the real image/jpeg (etc.) type must be set explicitly.
+    final mimeType = lookupMimeType(file.path) ?? 'image/jpeg';
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+        contentType: MediaType.parse(mimeType),
+      ),
+    );
     final streamed = await request.send();
     final res = await http.Response.fromStream(streamed);
     final body = _decode(res) as Map<String, dynamic>;
@@ -366,6 +378,7 @@ class ApiClient {
     required double lat,
     required double lng,
     String? wifiSsid,
+    String? photoUrl,
   }) async => DailySalesReport.fromJson(
     await post('/daily-sales-reports', {
       'spgId': spgId,
@@ -376,6 +389,7 @@ class ApiClient {
       'lat': lat,
       'lng': lng,
       if (wifiSsid != null) 'wifiSsid': wifiSsid,
+      if (photoUrl != null) 'photoUrl': photoUrl,
     }),
   );
 
@@ -383,6 +397,24 @@ class ApiClient {
       (await get('/daily-sales-reports', {'spgId': spgId}) as List)
           .map((e) => DailySalesReport.fromJson(e))
           .toList();
+
+  /// Paginated + searchable + date-filtered — backs "Daftar Penjualan Saya" (mobile) and mirrors
+  /// the same envelope the web admin report reads. `from`/`to` are "YYYY-MM-DD"; `page` is 1-indexed.
+  Future<DailySalesReportPage> searchMyDailySalesReports({
+    String? search,
+    String? from,
+    String? to,
+    int page = 1,
+    int pageSize = 20,
+  }) async => DailySalesReportPage.fromJson(
+    await get('/daily-sales-reports/search', {
+      if (search != null && search.isNotEmpty) 'search': search,
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+      'page': page,
+      'pageSize': pageSize,
+    }),
+  );
 
   // ── Training completions ────────────────────────────────────────────
   Future<List<int>> listTrainingCompletions(
@@ -500,6 +532,65 @@ class ApiClient {
       'endDate': endDate,
       if (reason != null && reason.isNotEmpty) 'reason': reason,
       if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
+    }),
+  );
+
+  // ── Location registration requests (SPG mendaftarkan toko baru) ────────
+  /// Paginated + searchable + date-filtered — backs the "Daftar Toko Saya" screen's lazy-loaded
+  /// list. `from`/`to` are "YYYY-MM-DD"; `page` is 1-indexed.
+  Future<LocationRegistrationPage> searchMyLocationRegistrations({
+    String? search,
+    String? from,
+    String? to,
+    int page = 1,
+    int pageSize = 20,
+  }) async => LocationRegistrationPage.fromJson(
+    await get('/location-registration-requests/mine', {
+      if (search != null && search.isNotEmpty) 'search': search,
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+      'page': page,
+      'pageSize': pageSize,
+    }),
+  );
+
+  Future<LocationRegistrationRequest> createLocationRegistration({
+    required int brandId,
+    required String name,
+    String? address,
+    String? category,
+    required double lat,
+    required double lng,
+    String? photoUrl,
+  }) async => LocationRegistrationRequest.fromJson(
+    await post('/location-registration-requests', {
+      'brandId': brandId,
+      'name': name,
+      if (address != null && address.isNotEmpty) 'address': address,
+      if (category != null && category.isNotEmpty) 'category': category,
+      'lat': lat,
+      'lng': lng,
+      if (photoUrl != null) 'photoUrl': photoUrl,
+    }),
+  );
+
+  /// SPG editing their own pending proposal — the backend rejects this once it's been reviewed.
+  Future<LocationRegistrationRequest> updateLocationRegistration(
+    int id, {
+    String? name,
+    String? address,
+    String? category,
+    double? lat,
+    double? lng,
+    String? photoUrl,
+  }) async => LocationRegistrationRequest.fromJson(
+    await patch('/location-registration-requests/$id', {
+      if (name != null) 'name': name,
+      if (address != null) 'address': address,
+      if (category != null) 'category': category,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+      if (photoUrl != null) 'photoUrl': photoUrl,
     }),
   );
 

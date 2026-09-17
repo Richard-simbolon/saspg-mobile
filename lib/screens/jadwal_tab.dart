@@ -315,7 +315,7 @@ class _DayDetailSheet extends StatelessWidget {
             ],
             if (approvedLeave)
               Text(
-                'Anda sedang cuti — tidak perlu check-in hari ini.',
+                'Anda sedang cuti — tidak perlu absen hari ini.',
                 style: TextStyle(fontSize: 12, color: NocturneColors.textMuted(0.55)),
               )
             else if (fullDayTraining)

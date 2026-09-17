@@ -39,7 +39,7 @@ class LocationService {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         throw LocationFailure(
-          'Izin lokasi ditolak. Aplikasi memerlukan akses lokasi untuk check-in.',
+          'Izin lokasi ditolak. Aplikasi memerlukan akses lokasi untuk melanjutkan.',
           LocationFailureReason.permissionDenied,
         );
       }

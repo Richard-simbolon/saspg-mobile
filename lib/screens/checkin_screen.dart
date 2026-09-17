@@ -148,7 +148,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Check-in & GPS', style: TextStyle(fontSize: 16))),
+      appBar: AppBar(title: const Text('Absen Masuk & GPS', style: TextStyle(fontSize: 16))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
         children: [
@@ -178,8 +178,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   Expanded(
                     child: Text(
                       _withinRadius
-                          ? 'Anda berada dalam radius ${widget.location.radiusMeters ?? 100}m dari ${widget.location.name}. Check-in diizinkan.'
-                          : 'Lokasi di luar radius toko (jarak ${_distance!.round()}m). Sistem mendeteksi kemungkinan GPS palsu — check-in diblokir.',
+                          ? 'Anda berada dalam radius ${widget.location.radiusMeters ?? 100}m dari ${widget.location.name}. Absen masuk diizinkan.'
+                          : 'Lokasi di luar radius toko (jarak ${_distance!.round()}m). Sistem mendeteksi kemungkinan GPS palsu — absen masuk diblokir.',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),
@@ -209,7 +209,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                               ? 'Tidak terhubung WiFi — melanjutkan dengan validasi GPS saja.'
                               : _wifiOk
                                   ? 'Terhubung ke WiFi "$_ssid". Sesuai dengan lokasi ini.'
-                                  : 'Terhubung ke WiFi "$_ssid" — lokasi ini mewajibkan WiFi "${widget.location.wifiSsid}". Check-in diblokir.',
+                                  : 'Terhubung ke WiFi "$_ssid" — lokasi ini mewajibkan WiFi "${widget.location.wifiSsid}". Absen masuk diblokir.',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),
@@ -274,7 +274,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 onPressed: (_position != null && _withinRadius && _wifiOk && _selfieUrl != null && !_submitting) ? _checkin : null,
                 child: _submitting
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(_selfieUrl == null ? 'Ambil Selfie untuk Check-in' : 'Check-in Sekarang'),
+                    : Text(_selfieUrl == null ? 'Ambil Selfie untuk Absen Masuk' : 'Absen Masuk Sekarang'),
               ),
             ),
           ] else ...[
@@ -284,7 +284,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 children: [
                   Icon(Icons.check_circle, color: NocturneColors.accent, size: 18),
                   const SizedBox(width: 10),
-                  Text('Berhasil check-in pukul ${_result!.checkin}', style: const TextStyle(fontSize: 12.5)),
+                  Text('Berhasil absen masuk pukul ${_result!.checkin}', style: const TextStyle(fontSize: 12.5)),
                 ],
               ),
             ),

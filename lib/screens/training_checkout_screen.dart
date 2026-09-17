@@ -115,7 +115,7 @@ class _TrainingCheckoutScreenState extends State<TrainingCheckoutScreen> {
   Widget build(BuildContext context) {
     final venue = widget.training.venueName?.trim().isNotEmpty == true ? widget.training.venueName! : widget.training.topik;
     return Scaffold(
-      appBar: AppBar(title: const Text('Check-out Training', style: TextStyle(fontSize: 16))),
+      appBar: AppBar(title: const Text('Absen Pulang Training', style: TextStyle(fontSize: 16))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
         children: [
@@ -140,7 +140,7 @@ class _TrainingCheckoutScreenState extends State<TrainingCheckoutScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Anda check-in training pukul ${widget.attendance.checkin} di $venue',
+                    'Anda absen masuk training pukul ${widget.attendance.checkin} di $venue',
                     style: const TextStyle(fontSize: 12.5),
                   ),
                 ),
@@ -174,8 +174,8 @@ class _TrainingCheckoutScreenState extends State<TrainingCheckoutScreen> {
                   Expanded(
                     child: Text(
                       _withinRadius
-                          ? 'Anda berada dalam radius ${widget.training.radiusMeters ?? 100}m dari $venue. Check-out diizinkan.'
-                          : 'Lokasi di luar radius training (jarak ${_distance!.round()}m). Check-out diblokir.',
+                          ? 'Anda berada dalam radius ${widget.training.radiusMeters ?? 100}m dari $venue. Absen pulang diizinkan.'
+                          : 'Lokasi di luar radius training (jarak ${_distance!.round()}m). Absen pulang diblokir.',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),
@@ -184,7 +184,7 @@ class _TrainingCheckoutScreenState extends State<TrainingCheckoutScreen> {
             ),
           const SizedBox(height: 14),
           if (_result == null) ...[
-            const Text('Selfie verifikasi check-out', style: TextStyle(fontSize: 12, color: Color(0x99E9E9ED))),
+            const Text('Selfie verifikasi absen pulang', style: TextStyle(fontSize: 12, color: Color(0x99E9E9ED))),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: _takeSelfie,
@@ -239,7 +239,7 @@ class _TrainingCheckoutScreenState extends State<TrainingCheckoutScreen> {
                 onPressed: (_position != null && _withinRadius && !_submitting) ? _checkout : null,
                 child: _submitting
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Check-out Sekarang'),
+                    : const Text('Absen Pulang Sekarang'),
               ),
             ),
           ] else ...[
@@ -251,7 +251,7 @@ class _TrainingCheckoutScreenState extends State<TrainingCheckoutScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Berhasil check-out pukul ${_result!.checkout} (${_result!.durationMinutes} menit di training)',
+                      'Berhasil absen pulang pukul ${_result!.checkout} (${_result!.durationMinutes} menit di training)',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),

@@ -24,6 +24,39 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
     await context.read<FieldDataState>().loadAll();
   }
 
+  /// Prompts to Check In right from an activity step, instead of leaving the
+  /// SPG to scroll down and tap the Check In row themselves first — lets them
+  /// start the visit session directly from this dialog and carry straight on.
+  Future<bool> _confirmCheckIn(OutletLocation loc) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: NocturneColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NocturneRadius.lg)),
+        title: const Text('Belum Check In', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+        content: Text(
+          'Anda perlu Check In di ${loc.name} dulu sebelum mengisi laporan kunjungan.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Batal')),
+          ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Check In')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return false;
+
+    final data = context.read<FieldDataState>();
+    try {
+      await data.api.startVisitSession(spgId: data.spgId, brandId: loc.brandId, outlet: loc.name);
+      await _refresh();
+      return true;
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      return false;
+    }
+  }
+
   void _showHistory(AttendanceRecord attendance) {
     ImageProvider? selfie(String? uri) => resolveImageProvider(uri);
 
@@ -32,13 +65,13 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: NocturneColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(NocturneRadius.lg)),
-        title: const Text('Riwayat Kunjungan', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+        title: const Text('Riwayat Absensi', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _HistoryRow(label: 'Check-in (${attendance.outlet})', time: attendance.checkin, image: selfie(attendance.checkinSelfieUrl)),
+            _HistoryRow(label: 'Absen Masuk (${attendance.outlet})', time: attendance.checkin, image: selfie(attendance.checkinSelfieUrl)),
             const SizedBox(height: 12),
-            _HistoryRow(label: 'Check-out', time: attendance.checkout, image: selfie(attendance.checkoutSelfieUrl)),
+            _HistoryRow(label: 'Absen Pulang', time: attendance.checkout, image: selfie(attendance.checkoutSelfieUrl)),
           ],
         ),
         actions: [
@@ -56,11 +89,6 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
     final scheduledToday = loc.isScheduledOn(data.spgId, DateTime.now());
     final myOutletAttendance = data.attendanceFor(loc);
     final todaysCheckin = data.todaysCheckin;
-    // Activities only need "checked in somewhere today" — a rep visiting several
-    // stores checks in once, at the first store; later stops still get their own
-    // GPS presence check per activity (enforced server-side), just not a formal check-in.
-    // A full-day training overrides all of that — no store visit is expected that day.
-    final canDoActivities = data.hasCheckedInToday && !data.isFullDayTrainingToday;
     final approval = data.approvalFor(loc);
     final laporanDone = approval != null;
     final fotoDone = approval?.photoUrls?.isNotEmpty ?? false;
@@ -68,6 +96,15 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
     final competitorDone = data.hasCompetitorActivityToday(loc);
     final visitSession = data.visitSessionFor(loc);
     final canEndVisit = laporanDone && fotoDone && penjualanDone;
+    // Absen Masuk (attendance) is what unlocks the Check In row below — a rep
+    // visiting several stores absens once, at the first store; a full-day
+    // training overrides all of that, since no store visit is expected that day.
+    final canStartVisit = data.hasCheckedInToday && !data.isFullDayTrainingToday;
+    // But filling out the actual activities needs more than just Absen Masuk —
+    // the SPG must have Check In'd at THIS specific store, or the report would
+    // have nothing to attach to. Tapping a step before that prompts to Check In
+    // right there (see _confirmCheckIn) instead of just sitting disabled.
+    final canDoActivities = visitSession != null && visitSession.isOngoing;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detail Kunjungan', style: TextStyle(fontSize: 16))),
@@ -124,6 +161,10 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
             done: laporanDone,
             enabled: canDoActivities,
             onTap: () async {
+              if (!canDoActivities) {
+                final started = await _confirmCheckIn(loc);
+                if (!started || !mounted) return;
+              }
               await Navigator.of(context).push(MaterialPageRoute(builder: (_) => LaporanScreen(location: loc)));
               _refresh();
             },
@@ -135,6 +176,10 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
             done: fotoDone,
             enabled: canDoActivities,
             onTap: () async {
+              if (!canDoActivities) {
+                final started = await _confirmCheckIn(loc);
+                if (!started || !mounted) return;
+              }
               await Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => FotoScreen(location: loc, existingApprovalId: approval?.id)),
               );
@@ -143,11 +188,15 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
           ),
           const SizedBox(height: 8),
           _StepRow(
-            icon: Icons.receipt_long_outlined,
+            icon: Icons.point_of_sale_outlined,
             label: 'Input Penjualan',
             done: penjualanDone,
             enabled: canDoActivities,
             onTap: () async {
+              if (!canDoActivities) {
+                final started = await _confirmCheckIn(loc);
+                if (!started || !mounted) return;
+              }
               await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PenjualanScreen(location: loc)));
               _refresh();
             },
@@ -159,6 +208,10 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
             done: competitorDone,
             enabled: canDoActivities,
             onTap: () async {
+              if (!canDoActivities) {
+                final started = await _confirmCheckIn(loc);
+                if (!started || !mounted) return;
+              }
               await Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => CompetitorActivityScreen(location: loc)),
               );
@@ -175,7 +228,7 @@ class _OutletDetailScreenState extends State<OutletDetailScreen> {
           _VisitSessionRow(
             location: loc,
             session: visitSession,
-            canStart: canDoActivities,
+            canStart: canStartVisit,
             canEnd: canEndVisit,
             onChanged: _refresh,
           ),
@@ -225,7 +278,7 @@ class _AttendanceRow extends StatelessWidget {
                 children: [
                   const Text('Kunjungan Selesai', style: TextStyle(fontSize: 13.5)),
                   Text(
-                    'Check-in ${todaysCheckin!.checkin} · Check-out ${todaysCheckin!.checkout}',
+                    'Absen Masuk ${todaysCheckin!.checkin} · Absen Pulang ${todaysCheckin!.checkout}',
                     style: TextStyle(fontSize: 11, color: NocturneColors.textMuted(0.55)),
                   ),
                 ],
@@ -251,7 +304,7 @@ class _AttendanceRow extends StatelessWidget {
                 children: [
                   const Text('Sedang Berkunjung', style: TextStyle(fontSize: 13.5)),
                   Text(
-                    'Check-in pukul ${todaysCheckin!.checkin} — check-out dari halaman Beranda.',
+                    'Absen masuk pukul ${todaysCheckin!.checkin} — absen pulang dari halaman Beranda.',
                     style: TextStyle(fontSize: 11, color: NocturneColors.textMuted(0.55)),
                   ),
                 ],
@@ -275,7 +328,7 @@ class _AttendanceRow extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Hari kerja selesai — check-in di ${todaysCheckin!.outlet}, check-out ${todaysCheckin!.checkout}.',
+                  'Hari kerja selesai — absen masuk di ${todaysCheckin!.outlet}, absen pulang ${todaysCheckin!.checkout}.',
                   style: const TextStyle(fontSize: 12.5),
                 ),
               ),
@@ -292,9 +345,9 @@ class _AttendanceRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Belum Check-out', style: TextStyle(fontSize: 13.5)),
+                  const Text('Belum Absen Pulang', style: TextStyle(fontSize: 13.5)),
                   Text(
-                    'Sudah check-in pukul ${todaysCheckin!.checkin} di ${todaysCheckin!.outlet} — check-out dari halaman Beranda.',
+                    'Sudah absen masuk pukul ${todaysCheckin!.checkin} di ${todaysCheckin!.outlet} — absen pulang dari halaman Beranda.',
                     style: TextStyle(fontSize: 11, color: NocturneColors.textMuted(0.55)),
                   ),
                 ],
@@ -330,7 +383,7 @@ class _AttendanceRow extends StatelessWidget {
         children: [
           Icon(Icons.fingerprint, size: 18, color: NocturneColors.textMuted(0.6)),
           const SizedBox(width: 10),
-          const Expanded(child: Text('Belum check-in — check-in dari halaman Beranda.', style: TextStyle(fontSize: 13))),
+          const Expanded(child: Text('Belum absen — absen masuk dari halaman Beranda.', style: TextStyle(fontSize: 13))),
           const NocturneTag('Belum', variant: TagVariant.neutral),
         ],
       ),
@@ -403,7 +456,7 @@ class _VisitSessionRowState extends State<_VisitSessionRow> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Kunjungan berakhir pukul ${session.endTime} (${session.durationMinutes ?? 0} menit)',
+                'Check Out pukul ${session.endTime} (${session.durationMinutes ?? 0} menit)',
                 style: const TextStyle(fontSize: 12.5),
               ),
             ),
@@ -425,7 +478,7 @@ class _VisitSessionRowState extends State<_VisitSessionRow> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Akhiri Kunjungan', style: TextStyle(fontSize: 13.5)),
+                    const Text('Check Out', style: TextStyle(fontSize: 13.5)),
                     Text(
                       widget.canEnd
                           ? 'Dimulai pukul ${session.startTime}'
@@ -436,9 +489,7 @@ class _VisitSessionRowState extends State<_VisitSessionRow> {
                 ),
               ),
               if (_submitting)
-                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              else
-                const NocturneTag('Berlangsung', variant: TagVariant.outline),
+                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
             ],
           ),
         ),
@@ -453,7 +504,7 @@ class _VisitSessionRowState extends State<_VisitSessionRow> {
           children: [
             Icon(Icons.play_circle_outline, size: 18, color: NocturneColors.accent),
             const SizedBox(width: 10),
-            const Expanded(child: Text('Mulai Kunjungan', style: TextStyle(fontSize: 13.5))),
+            const Expanded(child: Text('Check In', style: TextStyle(fontSize: 13.5))),
             if (_submitting)
               const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
             else
@@ -520,7 +571,9 @@ class _StepRow extends StatelessWidget {
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: NocturneCard(
-        onTap: enabled ? onTap : null,
+        // Always tappable, even while dimmed — tapping before Check In prompts
+        // to Check In right there (see _confirmCheckIn) instead of doing nothing.
+        onTap: onTap,
         child: Row(
           children: [
             Icon(icon, size: 18, color: NocturneColors.accent),

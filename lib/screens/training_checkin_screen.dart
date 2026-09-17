@@ -117,7 +117,7 @@ class _TrainingCheckinScreenState extends State<TrainingCheckinScreen> {
   Widget build(BuildContext context) {
     final venue = widget.training.venueName?.trim().isNotEmpty == true ? widget.training.venueName! : widget.training.topik;
     return Scaffold(
-      appBar: AppBar(title: const Text('Check-in Training', style: TextStyle(fontSize: 16))),
+      appBar: AppBar(title: const Text('Absen Masuk Training', style: TextStyle(fontSize: 16))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
         children: [
@@ -159,8 +159,8 @@ class _TrainingCheckinScreenState extends State<TrainingCheckinScreen> {
                   Expanded(
                     child: Text(
                       _withinRadius
-                          ? 'Anda berada dalam radius ${widget.training.radiusMeters ?? 100}m dari $venue. Check-in diizinkan.'
-                          : 'Lokasi di luar radius training (jarak ${_distance!.round()}m). Check-in diblokir.',
+                          ? 'Anda berada dalam radius ${widget.training.radiusMeters ?? 100}m dari $venue. Absen masuk diizinkan.'
+                          : 'Lokasi di luar radius training (jarak ${_distance!.round()}m). Absen masuk diblokir.',
                       style: const TextStyle(fontSize: 12.5),
                     ),
                   ),
@@ -224,7 +224,7 @@ class _TrainingCheckinScreenState extends State<TrainingCheckinScreen> {
                 onPressed: (_position != null && _withinRadius && _selfieUrl != null && !_submitting) ? _checkin : null,
                 child: _submitting
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(_selfieUrl == null ? 'Ambil Selfie untuk Check-in' : 'Check-in Sekarang'),
+                    : Text(_selfieUrl == null ? 'Ambil Selfie untuk Absen Masuk' : 'Absen Masuk Sekarang'),
               ),
             ),
           ] else ...[
@@ -234,7 +234,7 @@ class _TrainingCheckinScreenState extends State<TrainingCheckinScreen> {
                 children: [
                   Icon(Icons.check_circle, color: NocturneColors.accent, size: 18),
                   const SizedBox(width: 10),
-                  Text('Berhasil check-in pukul ${_result!.checkin}', style: const TextStyle(fontSize: 12.5)),
+                  Text('Berhasil absen masuk pukul ${_result!.checkin}', style: const TextStyle(fontSize: 12.5)),
                 ],
               ),
             ),

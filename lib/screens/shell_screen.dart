@@ -10,6 +10,7 @@ import 'training_tab.dart';
 import 'chat_tab.dart';
 import 'kinerja_tab.dart';
 import 'cuti_screen.dart';
+import 'daftar_toko_screen.dart';
 import 'payroll_screen.dart';
 import 'notifications_screen.dart';
 import 'shell_navigation.dart';
@@ -64,6 +65,15 @@ class _ShellScreenState extends State<ShellScreen> {
           actions: [
             _NotificationBell(data: data),
             const SizedBox(width: 8),
+            // Only surfaced on Jadwal — registering a new store is a route-planning action, not
+            // something that belongs on every tab's app bar. Hidden entirely unless at least one
+            // of this SPG's brands has enabled self-registration (admin toggle per brand).
+            if (_index == 1 && data.myBrands.any((b) => b.isTokoMandiri))
+              IconButton(
+                icon: const Icon(Icons.add_business_outlined, size: 18),
+                tooltip: 'Daftarkan Toko Baru',
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DaftarTokoScreen())),
+              ),
             IconButton(
               icon: const Icon(Icons.airplane_ticket_outlined, size: 18),
               tooltip: 'Cuti Saya',
